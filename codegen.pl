@@ -2,28 +2,28 @@ codegen(Start,Final,ActionList):-
     iddfs(Start,Final,ActionList).
 
 iddfs(Start,Final,ActionList):-
-    iterative(Start,[Start],1,2,ActionList,Final).
+    iterative(Start,[Start],2,ActionList,Final).
 
-iddfs(State,States,curr_depth,max_depth,[],Final):-
-    State==Final,!.
-iddfs(State1, SoFarStates,curr_depth,max_depth,ActionList,Final):-
+iddfs(State,States,Curr_depth,Max_depth,[],Final):-
+    State==Final.
+iddfs(State1, SoFarStates,Curr_depth,Max_depth,ActionList,Final):-
     legal_action(State1, State2,Action),
+    New_depth is Curr_depth+1,
     act_out(Action,L1),
-    \+ member(State2, SoFarStates),
+    not member(State2, SoFarStates),
     append(SoFarStates, [State2], NewSoFarStates),
-    depth_check(State2,NewSoFarStates,curr_depth,max_depth,L2,Final),
-    append(L1,L2,ActionList).
+    depth_check(State2,NewSoFarStates,New_depth,Max_depth,L2,Final),
+    append([L1],L2,ActionList).
 
-depth_check(State,SoFarStates,depth,max_depth,ActionList,Final):-
-    depth =< max_depth,
-    new_depth is depth+1,
-    iddfs(State2,SoFarStates,new_depth,max_depth,ActionList,Final).
+depth_check(State,SoFarStates,Depth,Max_depth,ActionList,Final):-
+    Depth =< Max_depth,
+    iddfs(State,SoFarStates,Depth,Max_depth,ActionList,Final).
 
-iterative(State,[State],1,max_depth,ActionList,Final):-
-    iddfs(State,[State],1,max_depth,ActionList,Final),!.
-iterative(State,[State],1,max_depth,ActionList,Final):-
-    new_max is max_depth+1,
-    iterative(State,[State],1,new_max,ActionList,Final).
+iterative(State,[State],Max_depth,ActionList,Final):-
+    iddfs(State,[State],0,Max_depth,ActionList,Final).
+rec(State,[State],Max_depth,ActionList,Final):-
+    New_max is Max_depth+1,
+    iterative(State,[State],0,New_max,ActionList,Final).
 
 between(N1,N2,N1):-
     N1 =< N2.
@@ -37,12 +37,11 @@ legal_action(State1,State2,Action):-
     N1 is N-1,
     between(1,N1,X),
     move(X,State1,State2),
-    Y is X+1,
-    Action is X.
+    Action=X.
 legal_action(State1,State2,Action):-
     length(State1,N),
-    move(N,1,State1,State2),
-    Action is N.
+    move(N,State1,State2),
+    Action=N.
 legal_action(State1,State2,Action):-
     length(State1,N),
     N1 is N-1,
