@@ -1,29 +1,39 @@
 codegen(Start,Final,ActionList):-
-    iddfs(Start,Final,ActionList).
+    length(Start,Length),
+    iddfs(Start,Final,ActionList,Length).
 
-iddfs(Start,Final,ActionList):-
-    iterative(Start,[Start],2,ActionList,Final).
+iddfs(Start,Final,ActionList,Length):-
+    iterative(Start,[Start],1,ActionList,Final,Length).
 
-iddfs(State,States,Curr_depth,Max_depth,[],Final):-
-    State==Final.
-iddfs(State1, SoFarStates,Curr_depth,Max_depth,ActionList,Final):-
-    legal_action(State1, State2,Action),
+iddfs(State,States,Curr_depth,Max_depth,[],Final,Length):-
+    compare_final(State,Final).
+iddfs(State1, SoFarStates,Curr_depth,Max_depth,ActionList,Final,Length):-
+    legal_action(State1,State2,Action,Length),
     New_depth is Curr_depth+1,
     act_out(Action,L1),
     not member(State2, SoFarStates),
     append(SoFarStates, [State2], NewSoFarStates),
-    depth_check(State2,NewSoFarStates,New_depth,Max_depth,L2,Final),
+    depth_check(State2,NewSoFarStates,New_depth,Max_depth,L2,Final,Length),
     append([L1],L2,ActionList).
 
-depth_check(State,SoFarStates,Depth,Max_depth,ActionList,Final):-
-    Depth =< Max_depth,
-    iddfs(State,SoFarStates,Depth,Max_depth,ActionList,Final).
+depth_check(State,SoFarStates,Depth,Max_depth,ActionList,Final,Length):-
+    (Depth < Max_depth->
+    (  iddfs(State,SoFarStates,Depth,Max_depth,ActionList,Final,Length);
+       compare_final(State,Final)  )).
 
-iterative(State,[State],Max_depth,ActionList,Final):-
-    iddfs(State,[State],0,Max_depth,ActionList,Final).
-rec(State,[State],Max_depth,ActionList,Final):-
+iterative(State,[State],Max_depth,ActionList,Final,Length):-
+    (iddfs(State,[State],0,Max_depth,ActionList,Final,Length)->true;rec(State,[State],Max_depth,ActionList,Final,Length)).
+rec(State,[State],Max_depth,ActionList,Final,Length):-
     New_max is Max_depth+1,
-    iterative(State,[State],0,New_max,ActionList,Final).
+    iterative(State,[State],New_max,ActionList,Final,Length).
+
+compare_final([],[]).
+compare_final([X|List1],[Y|List2]):-
+    X==Y,
+    compare_final(List1,List2).
+compare_final([X|List1],[Y|List2]):-
+    Y=='*',
+    compare_final(List1,List2).
 
 between(N1,N2,N1):-
     N1 =< N2.
@@ -32,44 +42,41 @@ between(N1,N2,X):-
     NewN1 is N1+1,
     between(NewN1,N2,X).
 
-legal_action(State1,State2,Action):-
-    length(State1,N),
+legal_action(State1,State2,Action,N):-
     N1 is N-1,
     between(1,N1,X),
-    move(X,State1,State2),
+    move(X,State1,State2,N),
     Action=X.
-legal_action(State1,State2,Action):-
-    length(State1,N),
-    move(N,State1,State2),
+legal_action(State1,State2,Action,N):-
+    move(N,State1,State2,N),
     Action=N.
-legal_action(State1,State2,Action):-
-    length(State1,N),
+legal_action(State1,State2,Action,N):-
     N1 is N-1,
     between(1,N1,X),
     X1 is X+1,
     between(X1,N,Y),
-    swap(X,Y,State1,State2),
+    swap(X,Y,State1,State2,N),
     Action=(X,Y).
 
-move(X,State1,State2):-
-    length(State1,N),
+move(X,State1,State2,N):-
     X \= N,
     X1 is X-1,
     nth(X1,State1,T0),
+    T0 \= '*',
     length(Prefix,X),
     append(Prefix,[_|Suffix],State1),
     append(Prefix,[T0],List),
     append(List,Suffix,State2).
 
-move(X,State1,State2):-
-    length(State1,N),
+move(X,State1,State2,N):-
     X == N,
     X1 is X-1,
     nth(X1,State1,T0),
+    T0 \= '*',
     append([],[_|Suffix],State1),
     append([T0],Suffix,State2).
 
-swap(X,Y,State1,State2):-
+swap(X,Y,State1,State2,N):-
     X1 is X-1,
     Y1 is Y-1,
     nth(X1,State1,T0),
