@@ -17,15 +17,72 @@ frame([[3,1,2,6,6,1,2,2],
 
 bounds(7,8).
 
-csp_solve([],[]). 
-csp_solve(Solution,Domains):-
+put_dominos:-
     dominos(Dominos),
     create_domains(Dominos,Domains),
-    mrv_variable(Domains,(X,Y),Var_Domain),    % to be finished
-    act((X,Y),Domains,(Point1,Point2)),         % to be finished 
-    fc_remove(Domains,Point1,Point2,NewDomains), % to be finished
+    csp_solve(Solution,Domains).
+
+csp_solve([],[]). 
+csp_solve(Solution,Domains):-
+    mrv_variable(Domains,(X,Y),Var_Domain), 
+    act_out(Var_Domain,(P1x,P1y),(P2y,P2y)), 
+    fc_remove(Domains,(X,Y),(P1x,P1y),(P2y,P2y),NewDomains), % to be finished
     csp_solve(PartialSolution,NewDomains),
-    append([(P1,P2)],PartialSolution,Solution).
+    append([[(P1x,P1y),(P2y,P2y)]],PartialSolution,Solution).
+
+act_out([[I1,J1,I2,J2]|Rest],Point1,Point2):-
+    Point1=(I1,J1),
+    Point2=(I2,J2).
+
+fc_remove([],(_,_),_,_,[]).
+fc_remove([K|RestDomains],(X,Y),(P1x,P1y),(P2y,P2y),NewDomains):-
+    [(I,J),Domain]=K,
+    fc_remove(RestDomains,(X,Y),(P1x,P1y),(P2y,P2y),NewDomains2),
+    ((I,J)==(X,Y)->
+        NewDomains=NewDomains2
+        ;
+        delete_point(Domain,(P1x,P1y),(P2y,P2y),Var_Domain),
+        append([(X,Y),Var_Domain],NewDomains2,NewDomains)
+    ).
+
+delete_point([],(_,_),(_,_),[]).
+delete_point([[I1,J1,I2,J2]|RestDomain],(P1x,P1y),(P2x,P2y),Result):-
+    delete_point(RestDomain,(P1x,P1y),(P2x,P2y),Partial_Result),
+    (((I1,J1)==(P1x,P1y);(I2,J2)==(P2x,P2y))->
+        Result=Partial_Result        
+        ;
+        append([[I1,J1,I2,J2]],Partial_Result,Result)
+    ).
+
+mrv_variable(Domains,(X,Y),Var_Domain):-
+    find_min(Domains,(X,Y),Var_Domain,_).
+
+find_min([],(_,_),_,-1).
+find_min([K|RestDomains],(X,Y),Result_Domain,NewMin):-
+    [(I1,J1),Domain_List]=K,
+    mylen(Domain_List,Len),
+    find_min(RestDomains,(I2,J2),Var_Domain,Min),
+    ((Min \= -1)->
+        ((Len < Min)->
+            NewMin=Len,
+            (X,Y)=(I1,J1),
+            Result_Domain=Domain_List
+            ;
+            NewMin=Min,
+            (X,Y)=(I2,J2),
+            Result_Domain=Var_Domain
+        )
+        ;
+        NewMin=Len,
+        (X,Y)=(I1,J1),
+        Result_Domain=Domain_List
+    ).
+
+mylen([],0).
+mylen([[_,_,_,_]|Rest],N):-
+    mylen(Rest,N1),
+    N is N1+1.
+
 
 
 create_domains([],[]).
@@ -35,7 +92,7 @@ create_domains([K|List],Domains):-
     iterate(0,0,M,N,X,Y,Domain),
     append([(X,Y)],[Domain],Element),
     create_domains(List,Domain_List),
-    append(Element,Domain_List,Domains).
+    append([Element],Domain_List,Domains).
 
 iterate(LimitI,LimitJ,LimitI,LimitJ,X,Y,[]).
 iterate(LimitI,J,LimitI,LimitJ,X,Y,Domain):-
